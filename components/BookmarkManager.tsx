@@ -8,6 +8,7 @@ import { TrashIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, FolderIco
 import DashboardShell from '@/components/DashboardShell'
 import BookmarkCard from '@/components/BookmarkCard'
 import { Bookmark } from '@/types'
+import { isValidHttpUrl } from '@/lib/url'
 
 export default function BookmarkManager({ user }: { user: User }) {
     const supabase = createClient()
@@ -92,14 +93,8 @@ export default function BookmarkManager({ user }: { user: User }) {
         return () => { supabase.removeChannel(channel) }
     }, [supabase, user.id])
 
-    const isValidUrl = (urlString: string) => {
-        try {
-            new URL(urlString);
-            return true;
-        } catch {
-            return false;
-        }
-    }
+    // Only http(s) links are accepted; other schemes (javascript:, data:, file:) are rejected everywhere.
+    const isValidUrl = isValidHttpUrl
 
     const addBookmark = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -116,7 +111,7 @@ export default function BookmarkManager({ user }: { user: User }) {
         }
 
         const tempId = Math.random().toString(36).substr(2, 9)
-        const newBookmark: Bookmark = { id: tempId, title, url, user_id: user.id, category: category || null }
+        const newBookmark: Bookmark = { id: tempId, title, url, user_id: user.id, category: category || null, created_at: new Date().toISOString() }
         setBookmarks((prev) => [newBookmark, ...prev])
         setNotification({ message: "Bookmark added successfully", type: 'success' })
         setIsAddModalOpen(false)
@@ -141,6 +136,7 @@ export default function BookmarkManager({ user }: { user: User }) {
     }
 
     const deleteBookmark = async (id: string) => {
+        const removed = bookmarks.find((b) => b.id === id)
         setBookmarks((prev) => prev.filter((b) => b.id !== id))
         setSelectedBookmarks(prev => {
             const newSet = new Set(prev)
@@ -154,6 +150,10 @@ export default function BookmarkManager({ user }: { user: User }) {
 
         if (error) {
             console.error("Error deleting:", error.message)
+            if (removed) {
+                setBookmarks((prev) => (prev.some((b) => b.id === id) ? prev : [removed, ...prev]))
+            }
+            setNotification({ message: "Failed to delete bookmark", type: 'error' })
         }
     }
 
@@ -198,7 +198,7 @@ export default function BookmarkManager({ user }: { user: User }) {
 
     const saveEdit = async (id: string) => {
         if (!isValidUrl(editUrl)) {
-            alert("Please enter a valid URL (e.g., https://example.com)")
+            alert("Please enter a valid web address starting with http:// or https://")
             return
         }
 
@@ -249,13 +249,9 @@ export default function BookmarkManager({ user }: { user: User }) {
             if (sortBy === 'name_desc') {
                 return b.title.localeCompare(a.title)
             }
-            // Default to date_desc (newest first, natural order)
-            return 0
+            const byDate = (a.created_at ?? '').localeCompare(b.created_at ?? '')   // ISO timestamps sort as text
+            return sortBy === 'date_asc' ? byDate : -byDate
         })
-
-    if (sortBy === 'date_asc') {
-        displayedBookmarks.reverse()
-    }
 
     return (
         <DashboardShell

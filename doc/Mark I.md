@@ -55,7 +55,7 @@ The backend architecture is serverless, leveraging **Next.js Server Actions/Rout
 
 ### 2.3 Database Schema (PostgreSQL)
 **Table**: `bookmarks`
--   **RLS (Row Level Security)**: (Implied) The app filters by `user_id` on the client, but secure apps should have RLS policies enabled on Supabase to prevent unauthorized access.
+-   **RLS (Row Level Security)**: required. See `supabase/policies.sql`; without it the public anon key can read every user's bookmarks.
 -   **Columns**:
     | Column Name | Type | Description |
     | :--- | :--- | :--- |

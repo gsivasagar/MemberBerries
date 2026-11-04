@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { Bookmark } from '@/types'
+import { hostnameOf, safeHttpUrl } from '@/lib/url'
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 
 type BookmarkCardProps = {
@@ -69,7 +70,8 @@ export default function BookmarkCard({
         if (isEditing) return;
         const target = e.target as HTMLElement;
         if (target.closest('button') || target.closest('input') || target.closest('a')) return;
-        window.open(b.url, '_blank', 'noopener,noreferrer');
+        const safe = safeHttpUrl(b.url)   // never open javascript:, data: or file: links
+        if (safe) window.open(safe, '_blank', 'noopener,noreferrer');
     }
 
     return (
@@ -139,12 +141,12 @@ export default function BookmarkCard({
                 ) : (
                     <>
                         <div className="flex items-start gap-x-3 mb-2">
-                            <img
-                                src={`https://www.google.com/s2/favicons?domain=${b.url}&sz=32`}
+                            {hostnameOf(b.url) && <img
+                                src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostnameOf(b.url) as string)}&sz=32`}
                                 alt=""
                                 className="h-5 w-5 rounded flex-shrink-0 mt-0.5 opacity-70"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                            />
+                            />}
                             <h3 className="text-sm font-semibold leading-tight text-white line-clamp-2" title={b.title || preview?.title}>
                                 {b.title || preview?.title || b.url}
                             </h3>
@@ -152,7 +154,7 @@ export default function BookmarkCard({
                         <div className="flex-1 min-h-[2.5rem]">
                             {preview?.description && <p className="text-xs text-gray-500 line-clamp-2 mb-2 leading-relaxed">{preview.description}</p>}
                             <p className="text-xs leading-5 text-gray-500 break-all line-clamp-1 hover:text-indigo-400 transition-colors">
-                                <a href={b.url} target="_blank" rel="noopener noreferrer">{b.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a>
+                                <a href={safeHttpUrl(b.url) ?? '#'} target="_blank" rel="noopener noreferrer">{b.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a>
                             </p>
                         </div>
                         <div className="mt-3 flex items-center gap-x-2 text-[10px] leading-4 text-gray-500">

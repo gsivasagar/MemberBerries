@@ -20,8 +20,37 @@ A real-time bookmark manager built with **Next.js 16**, **Supabase**, and **Tail
 ## Tech Stack
 
 - **Frontend**: Next.js 16 (App Router), React, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL, Auth, Realtime), Edge Functions
+- **Backend**: Supabase (PostgreSQL, Auth, Realtime) and a Next.js route handler for link previews
 - **Deployment**: Vercel
+- **Tests**: Vitest (`npm test`), ESLint, TypeScript, GitHub Actions
+
+## Setup
+
+```bash
+cp .env.example .env.local      # add your Supabase URL and anon key
+npm install
+npm run dev
+```
+Then run `supabase/policies.sql` once in the Supabase SQL editor (see Security).
+
+## Security
+
+- **Row Level Security is required.** The Supabase anon key is public by design, so data isolation comes from RLS, not from
+  the client. `supabase/policies.sql` enables RLS and adds select/insert/update/delete policies limited to
+  `auth.uid() = user_id`, and a check that only `http(s)` links are stored. Run it, then test with two accounts.
+- **Link previews are fetched server-side, so the route is locked down** (`app/api/preview/route.ts`): sign-in required,
+  per-user rate limit, `http`/`https` only on standard web ports, no embedded credentials, every address the host resolves
+  to must be public (loopback, private, link-local and cloud-metadata ranges are refused), redirects are followed manually
+  and re-checked at every hop, plus a time limit, a 1 MB read limit and content-type checks. Known residual risk: the address
+  is checked just before the request, so DNS rebinding is not fully closed; pin the resolved address in the HTTP client if
+  this route ever handles sensitive targets. The rate limiter keeps counters per server instance (best effort).
+- Saved links are validated as `http(s)` in the form, when rendering, and in the database; other schemes are never opened.
+- Favicons are requested from Google with only the host name, which still tells Google which sites you bookmark.
+
+## Tests
+`npm test` runs 92 tests for URL validation, the address guard (including decimal/hex/octal IP tricks and redirect
+bypasses), the preview fetcher, rate limiting and the API route. `npm run lint`, `npm run typecheck` and `npm run build`
+run in CI on every push.
 
 ## Challenges & Solutions
 
