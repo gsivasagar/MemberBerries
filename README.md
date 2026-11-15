@@ -1,5 +1,7 @@
 # Smart Bookmark App (MemberBerries)
 
+**Live demo:** https://member-berries.vercel.app/ (sign in with Google).
+
 A real-time bookmark manager built with **Next.js 16**, **Supabase**, and **Tailwind CSS**. Authenticated users can save, categorize, and manage their bookmarks with a premium, dark-themed UI.
 
 ![MemberBerries Logo](/public/logo.svg)
